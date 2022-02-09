@@ -9,12 +9,12 @@ import (
 	"syscall"
 )
 
-type publisherImpl struct {
+type publisherNSQImpl struct {
 	producer *nsq.Producer
 }
 
-// NewPublisher is
-func NewPublisher(url string) *publisherImpl {
+// NewPublisherNSQ is
+func NewPublisherNSQ(url string) *publisherNSQImpl {
 
 	nsqConfig := nsq.NewConfig()
 	producer, err := nsq.NewProducer(url, nsqConfig)
@@ -22,11 +22,11 @@ func NewPublisher(url string) *publisherImpl {
 		panic(err.Error())
 	}
 
-	return &publisherImpl{producer: producer}
+	return &publisherNSQImpl{producer: producer}
 }
 
 // Publish is
-func (m *publisherImpl) Publish(topic string, data payload.Payload) error {
+func (m *publisherNSQImpl) Publish(topic string, data payload.Payload) error {
 	dataInBytes, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -34,19 +34,19 @@ func (m *publisherImpl) Publish(topic string, data payload.Payload) error {
 	return m.producer.Publish(topic, dataInBytes)
 }
 
-type subscriberImpl struct {
+type subscriberNSQImpl struct {
 	channel     string
 	subscribers map[string]*nsq.Consumer
 }
 
-func NewSubscriber(channel string) Subscriber {
-	return &subscriberImpl{
+func NewSubscriberNSQ(channel string) Subscriber {
+	return &subscriberNSQImpl{
 		channel:     channel,
 		subscribers: map[string]*nsq.Consumer{},
 	}
 }
 
-func (r *subscriberImpl) Handle(topic string, onReceived HandleFunc) {
+func (r *subscriberNSQImpl) Handle(topic string, onReceived HandleFunc) {
 
 	nsqConfig := nsq.NewConfig()
 
@@ -65,7 +65,7 @@ func (r *subscriberImpl) Handle(topic string, onReceived HandleFunc) {
 	r.subscribers[topic] = con
 }
 
-func (r *subscriberImpl) Run(url string) {
+func (r *subscriberNSQImpl) Run(url string) {
 
 	termChan := make(chan os.Signal, 1)
 	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)

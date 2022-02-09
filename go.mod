@@ -6,6 +6,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/nsqio/go-nsq v1.1.0
+	github.com/rabbitmq/amqp091-go v1.3.0
 	gorm.io/driver/sqlite v1.2.6
 	gorm.io/gorm v1.22.5
 )
