@@ -16,4 +16,7 @@ type Cache interface {
 
 	// Del Delete the value
 	Del(ctx context.Context, key string) error
+
+	// Exist Check existing key
+	Exist(ctx context.Context, key string) (bool, error)
 }

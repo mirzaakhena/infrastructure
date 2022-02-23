@@ -56,3 +56,19 @@ func (c *RedisCache) Reset(ctx context.Context, key string, value []byte) error 
 	}
 	return nil
 }
+
+// Exist check the existence of key
+// return isExist flag and error
+func (c *RedisCache) Exist(ctx context.Context, key string) (bool, error) {
+
+	_, err := c.Client.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}

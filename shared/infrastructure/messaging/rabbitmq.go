@@ -7,19 +7,20 @@ import (
 	"infrastructure/shared/model/payload"
 	"os"
 	"os/signal"
+
 	"syscall"
 )
 
 const defaultExchange = "TopicChannelExchange"
 const exchangeType = "topic"
 
-type publisherRabbitMQImpl struct {
+type publisherImpl struct {
 	rabbitMQChannel *amqp.Channel
 }
 
-// NewPublisherRabbitMQ is
+// NewPublisher is
 // url "amqp://guest:guest@localhost:5672/"
-func NewPublisherRabbitMQ(url string) *publisherRabbitMQImpl {
+func NewPublisher(url string) *publisherImpl {
 
 	conn, err := amqp.Dial(url)
 	if err != nil {
@@ -33,13 +34,13 @@ func NewPublisherRabbitMQ(url string) *publisherRabbitMQImpl {
 	}
 	//defer ch.Close()
 
-	return &publisherRabbitMQImpl{
+	return &publisherImpl{
 		rabbitMQChannel: ch,
 	}
 }
 
 // Publish is
-func (m *publisherRabbitMQImpl) Publish(topic string, data payload.Payload) error {
+func (m *publisherImpl) Publish(topic string, data payload.Payload) error {
 
 	dataInBytes, err := json.Marshal(data)
 	if err != nil {
@@ -62,20 +63,20 @@ func (m *publisherRabbitMQImpl) Publish(topic string, data payload.Payload) erro
 	return nil
 }
 
-type subscriberRabbitMQImpl struct {
+type subscriberImpl struct {
 	queueName string
 	topicMap  map[string]HandleFunc
 }
 
-// NewSubscriberRabbitMQ is
-func NewSubscriberRabbitMQ(queueName string) Subscriber {
-	return &subscriberRabbitMQImpl{
+// NewSubscriber is
+func NewSubscriber(queueName string) Subscriber {
+	return &subscriberImpl{
 		queueName: queueName,
 		topicMap:  map[string]HandleFunc{},
 	}
 }
 
-func (r *subscriberRabbitMQImpl) Handle(topic string, onReceived HandleFunc) {
+func (r *subscriberImpl) Handle(topic string, onReceived HandleFunc) {
 
 	r.topicMap[topic] = onReceived
 
@@ -83,7 +84,7 @@ func (r *subscriberRabbitMQImpl) Handle(topic string, onReceived HandleFunc) {
 
 // Run is
 // "amqp://guest:guest@localhost:5672/"
-func (r *subscriberRabbitMQImpl) Run(url string) {
+func (r *subscriberImpl) Run(url string) {
 
 	conn, err := amqp.Dial(url)
 	if err != nil {
@@ -123,12 +124,12 @@ func (r *subscriberRabbitMQImpl) Run(url string) {
 	for s := range r.topicMap {
 
 		q, err := rabbitMQChannel.QueueDeclare(
-			fmt.Sprintf("%s-%s", r.queueName, s), // name
-			false,                                // durable
-			false,                                // delete when unused
-			false,                                // exclusive
-			false,                                // no-wait
-			nil,                                  // arguments
+			r.queueName+"-"+s, // name
+			false,             // durable
+			false,             // delete when unused
+			false,             // exclusive
+			false,             // no-wait
+			nil,               // arguments
 		)
 		if err != nil {
 			panic(err.Error())
@@ -165,6 +166,7 @@ func (r *subscriberRabbitMQImpl) Run(url string) {
 				var data payload.Payload
 				err := json.Unmarshal(d.Body, &data)
 				r.topicMap[routingKey](data, err)
+				//log.Printf("recv %s %s", d.RoutingKey, data.Data)
 			}
 		}(s)
 	}
