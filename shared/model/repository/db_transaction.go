@@ -6,6 +6,7 @@ import "context"
 // For consistency reason both WithTransactionDB and WithoutTransactionDB will seek database object under the context params
 type WithoutTransactionDB interface {
 	GetDatabase(ctx context.Context) (context.Context, error)
+	Close(ctx context.Context) error
 }
 
 // WithTransactionDB used for common transaction handling

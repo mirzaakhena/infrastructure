@@ -11,6 +11,13 @@ func WithoutTransaction(ctx context.Context, trx repository.WithoutTransactionDB
 	if err != nil {
 		return err
 	}
+	defer func(trx repository.WithoutTransactionDB, ctx context.Context) {
+		err := trx.Close(ctx)
+		if err != nil {
+			return
+		}
+	}(trx, dbCtx)
+
 	return trxFunc(dbCtx)
 }
 
@@ -21,19 +28,19 @@ func WithTransaction(ctx context.Context, trx repository.WithTransactionDB, trxF
 		return err
 	}
 
-	defer func() {
+	defer func(ctx context.Context) {
 		if p := recover(); p != nil {
-			err = trx.RollbackTransaction(dbCtx)
+			err = trx.RollbackTransaction(ctx)
 			panic(p)
 
 		} else if err != nil {
-			err = trx.RollbackTransaction(dbCtx)
+			err = trx.RollbackTransaction(ctx)
 
 		} else {
-			err = trx.CommitTransaction(dbCtx)
+			err = trx.CommitTransaction(ctx)
 
 		}
-	}()
+	}(dbCtx)
 
 	err = trxFunc(dbCtx)
 	return err

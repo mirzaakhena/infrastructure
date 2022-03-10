@@ -58,7 +58,6 @@ func NewSQLiteDefault() (db *gorm.DB) {
 // 	return db
 // }
 
-
 type contextDBType string
 
 var ContextDBValue contextDBType = "DB"
@@ -87,6 +86,10 @@ func NewGormWithoutTransactionImpl(db *gorm.DB) *GormWithoutTransactionImpl {
 func (r *GormWithoutTransactionImpl) GetDatabase(ctx context.Context) (context.Context, error) {
 	trxCtx := context.WithValue(ctx, ContextDBValue, r.db)
 	return trxCtx, nil
+}
+
+func (r *GormWithoutTransactionImpl) Close(ctx context.Context) error {
+	return nil
 }
 
 type GormWithTransactionImpl struct {
