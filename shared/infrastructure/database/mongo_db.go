@@ -2,15 +2,15 @@ package database
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func NewMongoDefault() *mongo.Client {
-
-	// TODO fill this URI later
-	uri := "mongodb://localhost:27017/?replicaSet=rs0&readPreference=primary&ssl=false"
+// NewMongoDefault uri := "mongodb://localhost:27017/?replicaSet=rs0&readPreference=primary&ssl=false"
+func NewMongoDefault(uri string) *mongo.Client {
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 
@@ -100,4 +100,53 @@ func (r *MongoWithTransaction) RollbackTransaction(ctx context.Context) error {
 	mongo.SessionFromContext(ctx).EndSession(ctx)
 
 	return nil
+}
+
+func (r *MongoWithTransaction) PrepareCollection(databaseName string, collectionNames []string) {
+	db := r.MongoClient.Database(databaseName)
+
+	existingCollectionNames, err := db.ListCollectionNames(context.Background(), bson.D{})
+	if err != nil {
+		panic(err)
+	}
+
+	mapCollName := map[string]int{}
+	for _, name := range existingCollectionNames {
+		mapCollName[name] = 1
+	}
+
+	for _, name := range collectionNames {
+		if _, exist := mapCollName[name]; !exist {
+			r.createCollection(db.Collection(name), db)
+		}
+	}
+}
+
+func (r *MongoWithTransaction) createCollection(coll *mongo.Collection, db *mongo.Database) {
+	createCmd := bson.D{{"create", coll.Name()}}
+	res := db.RunCommand(context.Background(), createCmd)
+	err := res.Err()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (r *MongoWithTransaction) SaveOrUpdate(databaseName, collectionName string, id primitive.ObjectID, data interface{}) error {
+
+	coll := r.MongoClient.Database(databaseName).Collection(collectionName)
+
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$set", data}}
+	opts := options.Update().SetUpsert(true)
+
+	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
+	if err != nil {
+		return err
+	}
+
+	_ = result
+
+	//fmt.Printf("%v %v %v\n", result.UpsertedCount, result.ModifiedCount, result.UpsertedID)
+
+	return err
 }
