@@ -145,5 +145,5 @@ func (r *MongoWithTransaction) SaveOrUpdate(ctx context.Context, databaseName, c
 		return nil, err
 	}
 
-	return fmt.Sprintf("%v %v %v\n", result.UpsertedCount, result.ModifiedCount, result.UpsertedID), nil
+	return fmt.Sprintf("%v %v %v", result.UpsertedCount, result.ModifiedCount, result.UpsertedID), nil
 }
