@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -131,7 +132,7 @@ func (r *MongoWithTransaction) createCollection(coll *mongo.Collection, db *mong
 	}
 }
 
-func (r *MongoWithTransaction) SaveOrUpdate(databaseName, collectionName string, id primitive.ObjectID, data interface{}) error {
+func (r *MongoWithTransaction) SaveOrUpdate(ctx context.Context, databaseName, collectionName string, id primitive.ObjectID, data interface{}) (interface{}, error) {
 
 	coll := r.MongoClient.Database(databaseName).Collection(collectionName)
 
@@ -139,14 +140,10 @@ func (r *MongoWithTransaction) SaveOrUpdate(databaseName, collectionName string,
 	update := bson.D{{"$set", data}}
 	opts := options.Update().SetUpsert(true)
 
-	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
+	result, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_ = result
-
-	//fmt.Printf("%v %v %v\n", result.UpsertedCount, result.ModifiedCount, result.UpsertedID)
-
-	return err
+	return fmt.Sprintf("%v %v %v\n", result.UpsertedCount, result.ModifiedCount, result.UpsertedID), nil
 }
