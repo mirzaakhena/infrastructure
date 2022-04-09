@@ -7,12 +7,14 @@ import (
 	"infrastructure/shared/model/payload"
 	"os"
 	"os/signal"
-
 	"syscall"
 )
 
-const defaultExchange = "TopicChannelExchange"
-const exchangeType = "topic"
+//const exchangeName = "simple.exchange"
+//const exchangeType = amqp.ExchangeTopic
+
+var exchangeName = "delayed.exchange"
+var exchangeType = "x-delayed-message"
 
 type publisherImpl struct {
 	rabbitMQChannel *amqp.Channel
@@ -40,21 +42,26 @@ func NewPublisher(url string) *publisherImpl {
 }
 
 // Publish is
-func (m *publisherImpl) Publish(topic string, data payload.Payload) error {
+func (m *publisherImpl) Publish(topic string, delayInMS int, data payload.Payload) error {
 
 	dataInBytes, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
+	headers := amqp.Table{
+		"x-delay": delayInMS, // only for x-delay-message
+	}
+
 	err = m.rabbitMQChannel.Publish(
-		defaultExchange, // exchange
-		topic,           // routing key
-		false,           // mandatory
-		false,           // immediate
+		exchangeName, // exchange
+		topic,        // routing key
+		false,        // mandatory
+		false,        // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        dataInBytes,
+			Headers:     headers,
 		})
 	if err != nil {
 		return err
@@ -108,14 +115,18 @@ func (r *subscriberImpl) Run(url string) {
 		}
 	}()
 
+	args := amqp.Table{
+		"x-delayed-type": "topic", // only for x-delay-message
+	}
+
 	err = rabbitMQChannel.ExchangeDeclare(
-		defaultExchange, // name
-		exchangeType,    // type
-		true,            // durable
-		false,           // auto-deleted
-		false,           // internal
-		false,           // no-wait
-		nil,             // arguments
+		exchangeName, // name
+		exchangeType, // type
+		true,         // durable
+		false,        // auto-deleted
+		false,        // internal
+		false,        // no-wait
+		args,         // arguments
 	)
 	if err != nil {
 		panic(err.Error())
@@ -136,9 +147,9 @@ func (r *subscriberImpl) Run(url string) {
 		}
 
 		err = rabbitMQChannel.QueueBind(
-			q.Name,          // queue name
-			s,               // routing key
-			defaultExchange, // exchange
+			q.Name,       // queue name
+			s,            // routing key
+			exchangeName, // exchange
 			false,
 			nil,
 		)
@@ -176,3 +187,9 @@ func (r *subscriberImpl) Run(url string) {
 	<-termChan
 
 }
+
+// https://programmer.ink/think/golang-implements-the-delay-queue-of-rabbitmq.html
+// https://stackoverflow.com/questions/52819237/how-to-add-plugin-to-rabbitmq-docker-image
+// https://github.com/rabbitmq/rabbitmq-delayed-message-exchange
+// https://www.cloudamqp.com/blog/what-is-a-delayed-message-exchange-in-rabbitmq.html
+// https://blog.rabbitmq.com/posts/2015/04/scheduling-messages-with-rabbitmq

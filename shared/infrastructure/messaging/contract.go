@@ -5,7 +5,7 @@ import (
 )
 
 type Publisher interface {
-	Publish(topic string, payload payload.Payload) error
+	Publish(topic string, delayInMS int, payload payload.Payload) error
 }
 
 type HandleFunc func(payload payload.Payload, err error)
