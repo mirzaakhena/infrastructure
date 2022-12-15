@@ -6,11 +6,12 @@ import (
 )
 
 // WithoutTransaction is helper function that simplify the readonly db
-func WithoutTransaction(ctx context.Context, trx repository.WithoutTransactionDB, trxFunc func(dbCtx context.Context) error) error {
+func WithoutTransaction[T any](ctx context.Context, trx repository.WithoutTransactionDB, trxFunc func(dbCtx context.Context) (*T, error)) (*T, error) {
 	dbCtx, err := trx.GetDatabase(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	defer func(trx repository.WithoutTransactionDB, ctx context.Context) {
 		err := trx.Close(ctx)
 		if err != nil {
@@ -22,26 +23,31 @@ func WithoutTransaction(ctx context.Context, trx repository.WithoutTransactionDB
 }
 
 // WithTransaction is helper function that simplify the transaction execution handling
-func WithTransaction(ctx context.Context, trx repository.WithTransactionDB, trxFunc func(dbCtx context.Context) error) error {
+func WithTransaction[T any](ctx context.Context, trx repository.WithTransactionDB, trxFunc func(dbCtx context.Context) (*T, error)) (*T, error) {
 	dbCtx, err := trx.BeginTransaction(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	defer func(ctx context.Context) {
+	defer func() {
 		if p := recover(); p != nil {
-			err = trx.RollbackTransaction(ctx)
+			err = trx.RollbackTransaction(dbCtx)
 			panic(p)
 
 		} else if err != nil {
-			err = trx.RollbackTransaction(ctx)
+			err = trx.RollbackTransaction(dbCtx)
 
 		} else {
-			err = trx.CommitTransaction(ctx)
+			err = trx.CommitTransaction(dbCtx)
 
 		}
-	}(dbCtx)
+	}()
 
-	err = trxFunc(dbCtx)
-	return err
+	var t *T
+	t, err = trxFunc(dbCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, err
 }
