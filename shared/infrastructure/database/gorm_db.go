@@ -1,22 +1,14 @@
 package database
 
-import (
-	"context"
-	"fmt"
-
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-)
-
-func NewSQLiteDefault() (db *gorm.DB) {
-
-	db, err := gorm.Open(sqlite.Open("local.db"), &gorm.Config{})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return db
-}
+//func NewSQLiteDefault() (db *gorm.DB) {
+//
+//	db, err := gorm.Open(sqlite.Open("local.db"), &gorm.Config{})
+//	if err != nil {
+//		panic(err.Error())
+//	}
+//
+//	return db
+//}
 
 // func NewPostgresDefault() (db *gorm.DB) {
 //
@@ -58,68 +50,68 @@ func NewSQLiteDefault() (db *gorm.DB) {
 // 	return db
 // }
 
-type contextDBType string
-
-var ContextDBValue contextDBType = "DB"
-
-// ExtractDB is used by other repo to extract the databasex from context
-func ExtractDB(ctx context.Context) (*gorm.DB, error) {
-
-	db, ok := ctx.Value(ContextDBValue).(*gorm.DB)
-	if !ok {
-		return nil, fmt.Errorf("database is not found in context")
-	}
-
-	return db, nil
-}
-
-type GormWithoutTransactionImpl struct {
-	db *gorm.DB
-}
-
-func NewGormWithoutTransactionImpl(db *gorm.DB) *GormWithoutTransactionImpl {
-	return &GormWithoutTransactionImpl{
-		db: db,
-	}
-}
-
-func (r *GormWithoutTransactionImpl) GetDatabase(ctx context.Context) (context.Context, error) {
-	trxCtx := context.WithValue(ctx, ContextDBValue, r.db)
-	return trxCtx, nil
-}
-
-func (r *GormWithoutTransactionImpl) Close(ctx context.Context) error {
-	return nil
-}
-
-type GormWithTransactionImpl struct {
-	db *gorm.DB
-}
-
-func NewGormWithTransactionImpl(db *gorm.DB) *GormWithTransactionImpl {
-	return &GormWithTransactionImpl{
-		db: db,
-	}
-}
-
-func (r *GormWithTransactionImpl) BeginTransaction(ctx context.Context) (context.Context, error) {
-	dbTrx := r.db.Begin()
-	trxCtx := context.WithValue(ctx, ContextDBValue, dbTrx)
-	return trxCtx, nil
-}
-
-func (r *GormWithTransactionImpl) CommitTransaction(ctx context.Context) error {
-	db, err := ExtractDB(ctx)
-	if err != nil {
-		return err
-	}
-	return db.Commit().Error
-}
-
-func (r *GormWithTransactionImpl) RollbackTransaction(ctx context.Context) error {
-	db, err := ExtractDB(ctx)
-	if err != nil {
-		return err
-	}
-	return db.Rollback().Error
-}
+//type contextDBType string
+//
+//var ContextDBValue contextDBType = "DB"
+//
+//// ExtractDB is used by other repo to extract the databasex from context
+//func ExtractDB(ctx context.Context) (*gorm.DB, error) {
+//
+//	db, ok := ctx.Value(ContextDBValue).(*gorm.DB)
+//	if !ok {
+//		return nil, fmt.Errorf("database is not found in context")
+//	}
+//
+//	return db, nil
+//}
+//
+//type GormWithoutTransactionImpl struct {
+//	db *gorm.DB
+//}
+//
+//func NewGormWithoutTransactionImpl(db *gorm.DB) *GormWithoutTransactionImpl {
+//	return &GormWithoutTransactionImpl{
+//		db: db,
+//	}
+//}
+//
+//func (r *GormWithoutTransactionImpl) GetDatabase(ctx context.Context) (context.Context, error) {
+//	trxCtx := context.WithValue(ctx, ContextDBValue, r.db)
+//	return trxCtx, nil
+//}
+//
+//func (r *GormWithoutTransactionImpl) Close(ctx context.Context) error {
+//	return nil
+//}
+//
+//type GormWithTransaction struct {
+//	db *gorm.DB
+//}
+//
+//func NewGormWithTransaction(db *gorm.DB) *GormWithTransaction {
+//	return &GormWithTransaction{
+//		db: db,
+//	}
+//}
+//
+//func (r *GormWithTransaction) BeginTransaction(ctx context.Context) (context.Context, error) {
+//	dbTrx := r.db.Begin()
+//	trxCtx := context.WithValue(ctx, ContextDBValue, dbTrx)
+//	return trxCtx, nil
+//}
+//
+//func (r *GormWithTransaction) CommitTransaction(ctx context.Context) error {
+//	db, err := ExtractDB(ctx)
+//	if err != nil {
+//		return err
+//	}
+//	return db.Commit().Error
+//}
+//
+//func (r *GormWithTransaction) RollbackTransaction(ctx context.Context) error {
+//	db, err := ExtractDB(ctx)
+//	if err != nil {
+//		return err
+//	}
+//	return db.Rollback().Error
+//}
