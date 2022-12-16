@@ -11,8 +11,7 @@ type contextDBType string
 var ContextDBValue contextDBType = "gormDB"
 
 type gormWrapper struct {
-	db  *gorm.DB
-	log logger.Logger
+	db *gorm.DB
 }
 
 // ExtractDB is used by other repo to extract the databasex from context
@@ -28,11 +27,13 @@ func (r *gormWrapper) ExtractDB(ctx context.Context) *gorm.DB {
 
 type GormWithTransaction struct {
 	*gormWrapper
+	log logger.Logger
 }
 
 func NewGormWithTransaction(db *gorm.DB, log logger.Logger) *GormWithTransaction {
 	return &GormWithTransaction{
-		gormWrapper: &gormWrapper{db: db, log: log},
+		gormWrapper: &gormWrapper{db: db},
+		log:         log,
 	}
 }
 
